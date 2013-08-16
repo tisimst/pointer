@@ -105,26 +105,32 @@ class pointer:
         return mylen
         
     def __getitem__(self, idx):
-        if not hasattr(self._obj, '__iter__') and \
-            not hasattr(self._obj, '__getitem__') and idx==0:
+        if isinstance(self._obj, pointer):
             return self._parentdict[self._name]
-        elif isinstance(idx, slice):
-            obj = self._parentdict[self._name]
-            return [obj[ii] for ii in xrange(*idx.indices(len(obj)))]
-        elif isinstance(idx, int):
-            if idx<0:
-                idx += len(self._obj)
-            if idx>=len(self._obj):
-                raise IndexError, 'Index ({:}) is out of range'.format(idx)
-            return self._parentdict[self._name][idx]
         else:
-            raise TypeError, 'Invalid argument type'
+            if not hasattr(self._obj, '__iter__') and \
+                not hasattr(self._obj, '__getitem__') and idx==0:
+                return self._parentdict[self._name]
+            elif isinstance(idx, slice):
+                obj = self._parentdict[self._name]
+                return [obj[ii] for ii in xrange(*idx.indices(len(obj)))]
+            elif isinstance(idx, int):
+                if idx<0:
+                    idx += len(self._obj)
+                if idx>=len(self._obj):
+                    raise IndexError, 'Index ({:}) is out of range'.format(idx)
+                return self._parentdict[self._name][idx]
+            else:
+                raise TypeError, 'Invalid argument type'
     
     def __setitem__(self, idx, val):
-        if not hasattr(self._obj, '__iter__') and idx==0:
+        if isinstance(self._obj, pointer):
             self._parentdict[self._name] = val
         else:
-            self._parentdict[self._name][idx] = val
+            if not hasattr(self._obj, '__iter__') and idx==0:
+                self._parentdict[self._name] = val
+            else:
+                self._parentdict[self._name][idx] = val
     
     def __add__(self, val):
         assert val==math.floor(val), 'Value must be an integer'
@@ -150,10 +156,13 @@ class pointer:
         Emulates ``*p``, which means "de-reference p and return the value of
         the object it points to".
         """
-        try:
-            v = self._parentdict[self._name][self._idx]
-        except (TypeError, IndexError):
+        if isinstance(self._parentdict[self._name], pointer):
             v = self._parentdict[self._name]
+        else:
+            try:
+                v = self._parentdict[self._name][self._idx]
+            except (TypeError, IndexError):
+                v = self._parentdict[self._name]
         return v
             
     @property
