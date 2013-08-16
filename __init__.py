@@ -6,25 +6,77 @@ import math
 import inspect
 
 class pointer:
-    def __init__(self, obj=None, idx=0, parent=None):
-        self._name = None        
+    def __init__(self, obj=None, idx=0, name=None, parent=None):
+        """
+        Create a new pseudo-pointer.
+        
+        Parameters
+        ----------
+        obj : object
+            Any python object to be "pointed to".
+        idx : int
+            The index of the array that is being pointed at (Default: 0)
+        name : str
+            The actual name that is being used to identify the object
+        parent : dict
+            The python namespace that contains the actual object that is 
+            being "pointed to". If not given manually, it is assumed that 
+            the object exists within the current scope of the assignment. 
+            If the object is a "raw" object (such as an ``int``, ``float``,
+            etc.), then a dummy dict is created to store the value.
+        
+        Examples
+        --------
+        ::
+            
+            >>> p = pointer()  # an empty pointer just itching to be used
+            >>> p
+            < empty pointer>
+            
+            >>> a = 1
+            >>> p.ref(a)  # now pointing at the object called "a"
+            >>> p
+            < pointer to a >
+            
+            >>> arr = [1, 2, 3]
+            >>> p.ref(arr)  # now pointing at the array called "arr"
+            >>> p
+            < pointer to index=0 of arr >
+            
+        """
+        # Test the input parameters
+        assert isinstance(idx, int), 'kwarg "idx" must be an int >= 0'
+
         if obj is not None:
-            if parent is None:
+            if parent is None or not isinstance(parent, dict):
                 parent = inspect.currentframe(1).f_locals
-            for k,v in parent.iteritems():
-                if obj is v:
-                    self._name = k
+            if name is not None:
+                try:
+                    parent[name]
+                except KeyError:
+                    raise KeyError("Sorry, {:} wasn't found in the namespace provided".format(name))
+                else:
+                    self._name = name
                     self._parentdict = parent
+            else:
+                # When the name isn't manually given, it is possible to
+                # point to the wrong object if another object has same
+                # value as the one trying to be pointed at (mostly only
+                # an issue for pointers to integer objects).
+                for k,v in parent.iteritems():
+                    if obj is v:
+                        self._name = k
+                        self._parentdict = parent
+                        break
                     
             # If raw object was input, like '1'
-            if self._name is None:
+            if name is None:
                 self._name = '_raw_data_'
                 self._parentdict = {self._name: obj}
         else:
             # If raw object was input, like '1'
-            if self._name is None:
-                self._name = '_raw_data_'
-                self._parentdict = {self._name: obj}
+            self._name = '_raw_data_'
+            self._parentdict = {self._name: obj}
                 
         self._obj = obj
         self._idx = idx
@@ -60,7 +112,7 @@ class pointer:
         elif isinstance(idx, int):
             if idx<0:
                 idx += len(self._obj)
-            if idx >= len(self._obj):
+            if idx>=len(self._obj):
                 raise IndexError, 'Index ({:}) is out of range'.format(idx)
             return self._parentdict[self._name][idx]
         else:
@@ -75,41 +127,65 @@ class pointer:
     def __add__(self, val):
         assert val==math.floor(val), 'Value must be an integer'
         return pointer(self._parentdict[self._name], self._idx + val,
-            parent=self._parentdict)
+            name = self._name, parent=self._parentdict)
     
     def __sub__(self, val):
         assert val==math.floor(val), 'Value must be an integer'
         return pointer(self._parentdict[self._name], self._idx - val,
-            parent=self._parentdict)
+            name = self._name, parent=self._parentdict)
     
     def copy(self):
+        """
+        Emulates ``q = p`` when p is a pointer and we want to create a new
+        pointer to the same object without creating ties between p and q.
+        """
         return pointer(self._parentdict[self._name], self._idx,
-            parent=self._parentdict)
+            name = self._name, parent=self._parentdict)
     
     @property
     def d(self):
-        if hasattr(self._obj, '__iter__') or hasattr(self._obj, '__getitem__'):
-            return self._parentdict[self._name][self._idx]
-        else:
-            return self._parentdict[self._name]
+        """
+        Emulates ``*p``, which means "de-reference p and return the value of
+        the object it points to".
+        """
+        try:
+            v = self._parentdict[self._name][self._idx]
+        except (TypeError, IndexError):
+            v = self._parentdict[self._name]
+        return v
             
     @property
     def pp(self):
+        """
+        Emulates ``p++``, which means "increment p"
+        """
         self._idx = self._idx + 1
         return self
     
     @property
     def mm(self):
+        """
+        Emulates ``p--``, which means "decrement p"
+        """
         self._idx = self._idx - 1
         return self
     
     def setd(self, val):
+        """
+        Emulates ``*p = ...``, which means "set the dereferenced value to..."
+        """
         try:
             self._parentdict[self._name][self._idx] = val
             self._obj[self._idx] = val
         except TypeError:
             self._parentdict[self._name] = val
             self._obj = val
+    
+    def ref(self, obj=None, idx=0, name=None, parent=None):
+        """
+        Emulates ``p = &a``, which means "point p to the address of a"
+        """
+        self = pointer(obj, idx, name, parent)
         
     @property
     def dpp(self):
