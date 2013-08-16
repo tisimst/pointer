@@ -39,7 +39,7 @@ Now let's create a pointer object (we'll start with an empty one for now)::
 Now let's point it to an array of "double's"::
 
     >>> a = [1, 2, 3]
-    >>> p.ref(a)  # C equiv: 'p = &a'
+    >>> p = ptr(a)  # C equiv: 'p = &a'
     >>> p
     < pointer to index=0 of a >
 
@@ -63,6 +63,32 @@ Okay, now what if we want to change the value were are currently pointing at?::
     >>> p[:]
     [5, 2, 3]
     
+Now let's see if the "pointing" actually works like we think it should::
+
+    >>> a = 1  # a regular int
+    >>> p = ptr(a)
+    >>> p.d  # we expect the result to be 1
+    1
+    >>> p.setd(3)  # now we expect 'a' to be 3
+    >>> a
+    3
+    >>> a = 45  # now let's see if the pointer updated...
+    >>> p.d
+    45
+    
+and sure enough, the pointer maintained ties with the original object, even
+though ``a`` is technically an immutable object in this example. If there is more
+than one object with the same value like::
+
+    >>> a = 1
+    >>> b = 1
+    
+Then we should be explicit about the variable name we are pointing at (especially
+for ``int`` and ``float`` objects::
+
+    >>> p = ptr(b, 'b')
+    >>> p
+    < pointer to b >
     
 
 Contact
