@@ -6,7 +6,7 @@ import math
 import inspect
 
 class pointer:
-    def __init__(self, obj=None, idx=0, name=None, parent=None):
+    def __init__(self, obj=None, name=None, idx=0, parent=None):
         """
         Create a new pseudo-pointer.
         
@@ -14,10 +14,10 @@ class pointer:
         ----------
         obj : object
             Any python object to be "pointed to".
-        idx : int
-            The index of the array that is being pointed at (Default: 0)
         name : str
             The actual name that is being used to identify the object
+        idx : int
+            The index of the array that is being pointed at (Default: 0)
         parent : dict
             The python namespace that contains the actual object that is 
             being "pointed to". If not given manually, it is assumed that 
@@ -34,19 +34,21 @@ class pointer:
             < empty pointer>
             
             >>> a = 1
-            >>> p.ref(a)  # now pointing at the object called "a"
+            >>> p = pointer(a)  # now pointing at the object called "a"
             >>> p
             < pointer to a >
             
             >>> arr = [1, 2, 3]
-            >>> p.ref(arr)  # now pointing at the array called "arr"
+            >>> p = pointer(arr)  # now pointing at the array called "arr"
             >>> p
             < pointer to index=0 of arr >
             
         """
         # Test the input parameters
         assert isinstance(idx, int), 'kwarg "idx" must be an int >= 0'
-
+        
+        self._name = None
+        
         if obj is not None:
             if parent is None or not isinstance(parent, dict):
                 parent = inspect.currentframe(1).f_locals
@@ -70,7 +72,7 @@ class pointer:
                         break
                     
             # If raw object was input, like '1'
-            if name is None:
+            if self._name is None:
                 self._name = '_raw_data_'
                 self._parentdict = {self._name: obj}
         else:
@@ -181,11 +183,11 @@ class pointer:
             self._parentdict[self._name] = val
             self._obj = val
     
-    def ref(self, obj=None, idx=0, name=None, parent=None):
-        """
-        Emulates ``p = &a``, which means "point p to the address of a"
-        """
-        self = pointer(obj, idx, name, parent)
+    # def ref(self, obj=None, idx=0, name=None, parent=None):
+        # """
+        # Emulates ``p = &a``, which means "point p to the address of a"
+        # """
+        # self.__init__(obj, idx, name, parent)
         
     @property
     def dpp(self):
